@@ -431,6 +431,8 @@
     <string name="settings_tmdb_api_key_summary">Déjalo vacío para usar la clave API predeterminada proporcionada con la aplicación</string>
     <string name="settings_tmdb_api_key_success">Clave API actualizada correctamente</string>
     <string name="settings_tmdb_api_key_reset">Usar clave API de TMDB predeterminada</string>
+    <string name="settings_tmdb_key_valid">TMDb API key is valid</string>
+    <string name="settings_tmdb_key_invalid">Invalid TMDb API key. Make sure you use the API v3 key (not the v4 Bearer token) from themoviedb.org/settings/api</string>
 
     <string name="settings_category_subdl">Ajustes de SubDL</string>
     <string name="settings_subdl_api_key">Clave API de SubDL</string>

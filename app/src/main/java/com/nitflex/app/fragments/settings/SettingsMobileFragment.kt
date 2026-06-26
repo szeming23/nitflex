@@ -45,6 +45,7 @@ import com.nitflex.app.utils.DnsResolver
 import com.nitflex.app.utils.ProviderChangeNotifier
 import com.nitflex.app.utils.ThemeManager
 import com.nitflex.app.utils.UserDataCache
+import com.nitflex.app.utils.TMDb3
 import com.nitflex.app.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -335,6 +336,18 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     getString(R.string.settings_tmdb_api_key_success)
                 }
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                if (newKey.isNotEmpty()) {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        try {
+                            withContext(Dispatchers.IO) { TMDb3.Genres.movieList() }
+                            Toast.makeText(requireContext(), getString(R.string.settings_tmdb_key_valid), Toast.LENGTH_SHORT).show()
+                        } catch (e: retrofit2.HttpException) {
+                            if (e.code() == 401) {
+                                Toast.makeText(requireContext(), getString(R.string.settings_tmdb_key_invalid), Toast.LENGTH_LONG).show()
+                            }
+                        } catch (_: Exception) { }
+                    }
+                }
                 true
             }
         }

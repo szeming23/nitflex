@@ -371,6 +371,8 @@
     <string name="settings_tmdb_api_key_summary">Lascia vuoto per usare l\'API key predefinita fornita con l\'app</string>
     <string name="settings_tmdb_api_key_success">API Key aggiornata correttamente</string>
     <string name="settings_tmdb_api_key_reset">API Key di default in uso</string>
+    <string name="settings_tmdb_key_valid">TMDb API key is valid</string>
+    <string name="settings_tmdb_key_invalid">Invalid TMDb API key. Make sure you use the API v3 key (not the v4 Bearer token) from themoviedb.org/settings/api</string>
     <string name="settings_category_subdl">Impostazioni SubDL</string>
     <string name="settings_subdl_api_key">SubDL API Key</string>
     <string name="settings_subdl_api_key_summary">Inserisci la tua API key personale di SubDL per abilitare SubDL nelle impostazioni dei sottotitoli del player</string>

@@ -18,23 +18,26 @@ object ApiKeysPersistence {
     private const val KEY_SUBDL = "subdl_api_key"
 
     fun save(context: Context) {
-        try {
-            val json = JSONObject().apply {
-                put(KEY_TMDB, UserPreferences.tmdbApiKey)
-                put(KEY_SUBDL, UserPreferences.subdlApiKey)
-            }.toString(2)
+        val appContext = context.applicationContext
+        Thread {
+            try {
+                val json = JSONObject().apply {
+                    put(KEY_TMDB, UserPreferences.tmdbApiKey)
+                    put(KEY_SUBDL, UserPreferences.subdlApiKey)
+                }.toString(2)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                saveViaMediaStore(context, json)
-            } else {
-                @Suppress("DEPRECATION")
-                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), FOLDER)
-                dir.mkdirs()
-                File(dir, FILE_NAME).writeText(json)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    saveViaMediaStore(appContext, json)
+                } else {
+                    @Suppress("DEPRECATION")
+                    val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), FOLDER)
+                    dir.mkdirs()
+                    File(dir, FILE_NAME).writeText(json)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to save API keys to local file", e)
             }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to save API keys to local file", e)
-        }
+        }.start()
     }
 
     fun load(context: Context) {
