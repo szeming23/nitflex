@@ -451,6 +451,10 @@
     <string name="settings_tmdb_api_key_summary">Leave empty to use the default API key provided with the app</string>
     <string name="settings_tmdb_api_key_success">API Key updated successfully</string>
     <string name="settings_tmdb_api_key_reset">Using default TMDb API Key</string>
+    <string name="settings_get_tmdb_api_key">Get a free TMDb API key →</string>
+    <string name="settings_get_tmdb_api_key_summary">Create a free account at themoviedb.org</string>
+    <string name="settings_get_subdl_api_key">Get a free SubDL API key →</string>
+    <string name="settings_get_subdl_api_key_summary">Create a free account at subdl.com</string>
 
     <string name="settings_category_subdl">SubDL Settings</string>
     <string name="settings_subdl_api_key">SubDL API Key</string>

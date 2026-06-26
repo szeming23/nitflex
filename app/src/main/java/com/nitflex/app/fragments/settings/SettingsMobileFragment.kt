@@ -339,6 +339,11 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
+        findPreference<Preference>("tmdb_api_key_link")?.setOnPreferenceClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.themoviedb.org/settings/api")))
+            true
+        }
+
         findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
             summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
             text = UserPreferences.subdlApiKey
@@ -354,6 +359,11 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 true
             }
+        }
+
+        findPreference<Preference>("subdl_api_key_link")?.setOnPreferenceClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://subdl.com/api-docs")))
+            true
         }
 
         findPreference<Preference>("p_settings_about")?.apply {

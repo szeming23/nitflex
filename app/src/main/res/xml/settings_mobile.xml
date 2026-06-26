@@ -27,6 +27,12 @@
                 android:summary="@string/settings_tmdb_api_key_summary"
                 android:inputType="text"
                 app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="tmdb_api_key_link"
+                android:title="@string/settings_get_tmdb_api_key"
+                android:summary="@string/settings_get_tmdb_api_key_summary"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
 
         <PreferenceCategory
@@ -243,6 +249,12 @@
                 android:title="@string/settings_subdl_api_key"
                 android:summary="@string/settings_subdl_api_key_summary"
                 android:inputType="text"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="subdl_api_key_link"
+                android:title="@string/settings_get_subdl_api_key"
+                android:summary="@string/settings_get_subdl_api_key_summary"
                 app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>

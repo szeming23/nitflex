@@ -343,6 +343,12 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 true
             }
         }
+
+        findPreference<Preference>("tmdb_api_key_link")?.setOnPreferenceClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.themoviedb.org/settings/api")))
+            true
+        }
+
         findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.apply {
             isChecked = UserPreferences.enableTmdb
 
@@ -389,6 +395,11 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 true
             }
+        }
+
+        findPreference<Preference>("subdl_api_key_link")?.setOnPreferenceClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://subdl.com/api-docs")))
+            true
         }
 
         findPreference<Preference>("p_settings_about")?.apply {
