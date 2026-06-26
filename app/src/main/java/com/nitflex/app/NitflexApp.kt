@@ -13,6 +13,7 @@ import com.nitflex.app.utils.ArtworkRepairScheduler
 import com.nitflex.app.utils.CacheUtils
 import com.nitflex.app.utils.DnsResolver
 import com.nitflex.app.utils.IsrgRootTrustProvider
+import com.nitflex.app.utils.ApiKeysPersistence
 import com.nitflex.app.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +45,7 @@ class NitflexApp : Application() {
 
         // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
+        ApiKeysPersistence.load(this)
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
 
         val appContext = applicationContext

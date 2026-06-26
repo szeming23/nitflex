@@ -169,6 +169,7 @@ object UserPreferences {
         set(value) {
             Key.TMDB_API_KEY.setString(value)
             TMDb3.rebuildService()
+            ApiKeysPersistence.save(NitflexApp.instance)
         }
     var enableTmdb: Boolean
         get() = Key.ENABLE_TMDB.getBoolean() ?: true
@@ -270,6 +271,7 @@ object UserPreferences {
         get() = Key.SUBDL_API_KEY.getString() ?: ""
         set(value) {
             Key.SUBDL_API_KEY.setString(value)
+            ApiKeysPersistence.save(NitflexApp.instance)
         }
 
     var bypassWsAdvertisedHost: String
