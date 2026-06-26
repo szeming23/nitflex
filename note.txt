@@ -1,0 +1,93 @@
+================================================================
+  NITFLEX - HOW TO BUILD & INSTALL ON YOUR PHONE
+================================================================
+
+WHAT YOU NEED (one-time setup)
+----------------------------------------------------------------
+1. Install Android Studio
+   → https://developer.android.com/studio
+   (This also installs the Android SDK and Java automatically)
+
+2. Open the nitflex folder in Android Studio
+   File → Open → select the nitflex folder
+
+3. Let Android Studio sync and download dependencies
+   (It does this automatically on first open — just wait)
+
+
+OPTIONAL: ADD YOUR API KEYS (recommended)
+----------------------------------------------------------------
+Create a file called "local.properties" in the nitflex folder
+(if it doesn't already exist) and add:
+
+   TMDB_API_KEY=your_key_here
+   SUBDL_API_KEY=your_key_here
+
+Get your free keys at:
+   → TMDb:  https://www.themoviedb.org/settings/api
+   → SubDL: https://subdl.com/api-docs
+
+You can also enter these keys manually inside the app later
+(Settings → Content → TMDb / SubDL).
+
+
+BUILD THE APK
+----------------------------------------------------------------
+Option A — Android Studio (easiest):
+   1. Open Android Studio with the nitflex project
+   2. Top menu: Build → Build Bundle(s) / APK(s) → Build APK(s)
+   3. Wait for the build to finish
+   4. Click "locate" in the notification that pops up
+
+Option B — Command line:
+   Open a terminal in the nitflex folder and run:
+
+   Windows:   gradlew.bat assembleDebug
+   Mac/Linux: ./gradlew assembleDebug
+
+   APK will be saved to:
+   app\build\outputs\apk\debug\app-debug.apk
+
+
+TRANSFER TO YOUR PHONE
+----------------------------------------------------------------
+1. Connect your phone to your PC via USB cable
+
+2. On your phone:
+   → Go to Settings → About Phone
+   → Tap "Build Number" 7 times to enable Developer Mode
+   → Go back to Settings → Developer Options
+   → Enable "USB Debugging"
+
+3. Copy the APK file to your phone
+   (drag and drop into any folder via File Explorer, or
+    use a USB cable and copy to Downloads folder)
+
+4. On your phone:
+   → Open your file manager app
+   → Navigate to where you copied the APK
+   → Tap the APK file
+
+5. If asked, allow "Install from unknown sources"
+   → Settings → Security → Unknown Sources (enable it)
+   → Or it may prompt you directly — just tap Allow
+
+6. Tap Install → Done
+
+
+REBUILD AFTER CODE CHANGES
+----------------------------------------------------------------
+Just repeat the "Build the APK" step above.
+You do NOT need to redo the phone setup each time.
+Installing a new APK over the old one keeps your app data.
+
+
+TIPS
+----------------------------------------------------------------
+- Use the Debug APK for testing (faster to build, no signing needed)
+- The app will appear as "Nitflex" on your phone's home screen
+- If install fails, uninstall the old version first then try again
+- If USB is slow, you can email/WhatsApp the APK to yourself
+  and open it directly from your phone
+
+================================================================
