@@ -63,6 +63,26 @@ android {
         jvmTarget = '17'
     }
 
+    // Release signing config, loaded from keystore.properties (gitignored) if present.
+    // Create that file with: storeFile, storePassword, keyAlias, keyPassword.
+    def keystorePropsFile = project.rootProject.file('keystore.properties')
+    def hasReleaseSigning = keystorePropsFile.exists()
+    def keystoreProps = new Properties()
+    if (hasReleaseSigning) {
+        keystoreProps.load(keystorePropsFile.newDataInputStream())
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile project.rootProject.file(keystoreProps.getProperty('storeFile'))
+                storePassword keystoreProps.getProperty('storePassword')
+                keyAlias keystoreProps.getProperty('keyAlias')
+                keyPassword keystoreProps.getProperty('keyPassword')
+            }
+        }
+    }
+
     buildTypes {
         debug {
             minifyEnabled false
@@ -72,6 +92,12 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Only attach the signing config when keystore.properties exists, so
+            // command-line release builds are signed automatically. Without it,
+            // use Android Studio's "Generate Signed APK" wizard instead.
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 

@@ -10,3 +10,8 @@
 local.properties
 *.salive
 *.log
+
+# Release signing — never commit your keystore or its passwords
+keystore.properties
+*.jks
+*.keystore
