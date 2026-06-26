@@ -64,6 +64,10 @@ class MoviesTvFragment : Fragment() {
                     }
                     is MoviesViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()
+                        if (code == 401) {
+                            Toast.makeText(requireContext(), getString(R.string.error_401_api_key), Toast.LENGTH_LONG).show()
+                            return@collect
+                        }
                         if (code == 409 && !hasAutoCleared409) {
                             hasAutoCleared409 = true
                             CacheUtils.clearAppCache(requireContext())

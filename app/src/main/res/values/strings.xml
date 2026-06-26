@@ -446,6 +446,7 @@
     <string name="player_settings_keep_screen_on_title">Keep screen on when paused</string>
 
     <string name="settings_category_tmdb">TMDb Settings</string>
+    <string name="error_401_api_key">Unauthorized (401): API key missing or invalid. Please add your TMDb API key in Settings.</string>
     <string name="settings_tmdb_api_key">Custom TMDb API Key</string>
     <string name="settings_tmdb_api_key_summary">Leave empty to use the default API key provided with the app</string>
     <string name="settings_tmdb_api_key_success">API Key updated successfully</string>
