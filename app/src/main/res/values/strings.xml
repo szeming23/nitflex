@@ -452,7 +452,7 @@
     <string name="settings_tmdb_api_key_success">API Key saved. Verifying…</string>
     <string name="settings_tmdb_api_key_reset">Using default TMDb API Key</string>
     <string name="settings_tmdb_key_valid">TMDb API key is valid</string>
-    <string name="settings_tmdb_key_invalid">Invalid TMDb API key. Make sure you use the API v3 key (not the v4 Bearer token) from themoviedb.org/settings/api</string>
+    <string name="settings_tmdb_key_invalid">Invalid TMDb credential. Copy either the \"API Key\" or the \"API Read Access Token\" from themoviedb.org/settings/api</string>
     <string name="settings_get_tmdb_api_key">Get a free TMDb API key →</string>
     <string name="settings_get_tmdb_api_key_summary">Create a free account at themoviedb.org</string>
     <string name="settings_get_subdl_api_key">Get a free SubDL API key →</string>

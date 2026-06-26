@@ -253,7 +253,7 @@
     <string name="settings_tmdb_api_key_success">تم تحديث مفتاح API بنجاح</string>
     <string name="settings_tmdb_api_key_reset">باستخدام مفتاح TMDb API الافتراضي</string>
     <string name="settings_tmdb_key_valid">TMDb API key is valid</string>
-    <string name="settings_tmdb_key_invalid">Invalid TMDb API key. Make sure you use the API v3 key (not the v4 Bearer token) from themoviedb.org/settings/api</string>
+    <string name="settings_tmdb_key_invalid">Invalid TMDb credential. Copy either the \"API Key\" or the \"API Read Access Token\" from themoviedb.org/settings/api</string>
     <string name="settings_category_subdl">إعدادات SubDL</string>
     <string name="settings_subdl_api_key">مفتاح API SubDL</string>
     <string name="settings_subdl_api_key_summary">أدخل مفتاح API SubDL الشخصي لتمكين SubDL في إعدادات ترجمة المشغل</string>

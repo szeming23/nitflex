@@ -950,11 +950,23 @@ object TMDb3 {
                     val apiKey = UserPreferences.tmdbApiKey.ifEmpty { BuildConfig.TMDB_API_KEY }
 
                     val requestBuilder = original.newBuilder()
-                        .url(
+
+                    // TMDB accepts two credential formats from its API settings page:
+                    //  - "API Read Access Token" (v4): a long JWT starting with "eyJ",
+                    //     sent as an "Authorization: Bearer <token>" header.
+                    //  - "API Key" (v3): a 32-char hex string, sent as the
+                    //     "api_key" query parameter.
+                    // Detect which one the user pasted and authenticate accordingly so
+                    // either format works.
+                    if (apiKey.startsWith("eyJ")) {
+                        requestBuilder.addHeader("Authorization", "Bearer $apiKey")
+                    } else {
+                        requestBuilder.url(
                             original.url.newBuilder()
                                 .addQueryParameter("api_key", apiKey)
                                 .build()
                         )
+                    }
 
                     chain.proceed(requestBuilder.build())
                 }.build()
