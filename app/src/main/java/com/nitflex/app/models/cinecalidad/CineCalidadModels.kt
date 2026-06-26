@@ -1,0 +1,1 @@
+package com.nitflex.app.models.cinecalidad
