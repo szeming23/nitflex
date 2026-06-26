@@ -8,6 +8,7 @@ import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.utils.AniListApi
 import com.streamflixreborn.streamflix.utils.ArtworkRepair
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
@@ -217,6 +218,19 @@ class TvShowViewModel(
             }
             if (!ArtworkRepair.isRemoteArtworkUrl(tvShow.banner) && ArtworkRepair.isRemoteArtworkUrl(tvShow.poster)) {
                 tvShow.banner = tvShow.poster
+            }
+
+            val genreNames = tvShow.genres.map { it.name }
+            if (AniListApi.isAnime(genreNames)) {
+                val anilist = AniListApi.fetch(tvShow.title)
+                if (anilist != null) {
+                    tvShow.isAnime = true
+                    tvShow.anilistId = anilist.id
+                    tvShow.malId = anilist.malId
+                    if (tvShow.overview.isNullOrBlank() && anilist.description != null) {
+                        tvShow.overview = anilist.description
+                    }
+                }
             }
 
             database.tvShowDao().getById(tvShow.id)?.let { tvShowDb ->

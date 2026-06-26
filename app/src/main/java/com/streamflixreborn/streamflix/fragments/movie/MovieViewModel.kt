@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.utils.AniListApi
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
@@ -98,6 +99,19 @@ class MovieViewModel(id: String, private val database: AppDatabase) : ViewModel(
 
         try {
             val movie = UserPreferences.currentProvider!!.getMovie(id)
+
+            val genreNames = movie.genres.map { it.name }
+            if (AniListApi.isAnime(genreNames)) {
+                val anilist = AniListApi.fetch(movie.title)
+                if (anilist != null) {
+                    movie.isAnime = true
+                    movie.anilistId = anilist.id
+                    movie.malId = anilist.malId
+                    if (movie.overview.isNullOrBlank() && anilist.description != null) {
+                        movie.overview = anilist.description
+                    }
+                }
+            }
 
             database.movieDao().getById(id)?.let { movieDb ->
                 movie.merge(movieDb)

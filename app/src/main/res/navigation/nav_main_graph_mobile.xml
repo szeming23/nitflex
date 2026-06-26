@@ -224,6 +224,12 @@
             app:popUpToInclusive="true" />
     </fragment>
     <fragment
+        android:id="@+id/watch_party"
+        android:name="com.streamflixreborn.streamflix.fragments.watch_party.WatchPartyMobileFragment"
+        android:label="fragment_watch_party_mobile"
+        tools:layout="@layout/fragment_watch_party_mobile" />
+
+    <fragment
         android:id="@+id/settings"
         android:name="com.streamflixreborn.streamflix.fragments.settings.SettingsMobileFragment"
         android:label="fragment_settings_mobile" >

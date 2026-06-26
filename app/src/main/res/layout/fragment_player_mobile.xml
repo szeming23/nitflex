@@ -142,6 +142,27 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Watch Party indicator: visible only when in a party -->
+    <TextView
+        android:id="@+id/btn_player_watch_party"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_skip_intro_button"
+        android:drawablePadding="6dp"
+        android:gravity="center"
+        android:paddingStart="12dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="6dp"
+        android:text="@string/watch_party_title"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toStartOf="@id/settings"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <LinearLayout
         android:id="@+id/ll_brightness"
         android:layout_width="wrap_content"

@@ -491,6 +491,74 @@ class PlayerMobileFragment : Fragment() {
             }
         }
 
+        // ── Watch Party integration ───────────────────────────────────────────
+        viewLifecycleOwner.lifecycleScope.launch {
+            com.streamflixreborn.streamflix.utils.WatchPartyManager.inParty
+                .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+                .collect { inParty ->
+                    binding.btnPlayerWatchParty.visibility =
+                        if (inParty) android.view.View.VISIBLE else android.view.View.GONE
+                }
+        }
+
+        binding.btnPlayerWatchParty.setOnClickListener {
+            findNavController().navigate(R.id.watch_party)
+        }
+
+        // HOST: poll ExoPlayer state every 500ms and broadcast changes
+        viewLifecycleOwner.lifecycleScope.launch {
+            com.streamflixreborn.streamflix.utils.WatchPartyManager.isHost
+                .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+                .collect { isHost ->
+                    if (isHost && ::player.isInitialized) {
+                        launch {
+                            while (com.streamflixreborn.streamflix.utils.WatchPartyManager.isHost.value) {
+                                com.streamflixreborn.streamflix.utils.WatchPartyManager.reportHostState(
+                                    player.currentPosition,
+                                    player.isPlaying
+                                )
+                                kotlinx.coroutines.delay(500)
+                            }
+                        }
+                        launch {
+                            while (com.streamflixreborn.streamflix.utils.WatchPartyManager.isHost.value) {
+                                kotlinx.coroutines.delay(5000)
+                                if (::player.isInitialized && player.isPlaying) {
+                                    com.streamflixreborn.streamflix.utils.WatchPartyManager.sendHeartbeat(player.currentPosition)
+                                }
+                            }
+                        }
+                    }
+                }
+        }
+
+        // GUEST: receive control events and apply to ExoPlayer
+        viewLifecycleOwner.lifecycleScope.launch {
+            com.streamflixreborn.streamflix.utils.WatchPartyManager.controlEvents
+                .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+                .collect { event ->
+                    if (!::player.isInitialized) return@collect
+                    when (event) {
+                        is com.streamflixreborn.streamflix.utils.WatchPartyManager.ControlEvent.Play -> {
+                            player.seekTo(event.timeMs)
+                            player.play()
+                        }
+                        is com.streamflixreborn.streamflix.utils.WatchPartyManager.ControlEvent.Pause -> {
+                            player.seekTo(event.timeMs)
+                            player.pause()
+                        }
+                        is com.streamflixreborn.streamflix.utils.WatchPartyManager.ControlEvent.Seek -> {
+                            player.seekTo(event.timeMs)
+                        }
+                        is com.streamflixreborn.streamflix.utils.WatchPartyManager.ControlEvent.Heartbeat -> {
+                            val diff = kotlin.math.abs(player.currentPosition - event.timeMs)
+                            if (diff > 3000) player.seekTo(event.timeMs)
+                        }
+                    }
+                }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     viewModel.playPreviousOrNextEpisode.collect { nextEpisode ->

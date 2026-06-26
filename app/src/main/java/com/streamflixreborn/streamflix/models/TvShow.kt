@@ -32,6 +32,13 @@ class TvShow(
 
     @Ignore
     var providerName: String? = null,
+
+    @Ignore
+    var anilistId: Int? = null,
+    @Ignore
+    var malId: Int? = null,
+    @Ignore
+    var isAnime: Boolean = false,
     @Ignore
     val seasons: List<Season> = listOf(),
     @Ignore

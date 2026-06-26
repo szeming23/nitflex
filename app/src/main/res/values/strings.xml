@@ -34,6 +34,23 @@
     <string name="main_menu_tv_shows">TV Shows</string>
     <string name="main_menu_all_channels">All Channels</string>
     <string name="main_menu_settings">Settings</string>
+    <string name="main_menu_watch_party">Watch Party</string>
+
+    <string name="watch_party_title">Watch Party</string>
+    <string name="watch_party_name_hint">Your display name</string>
+    <string name="watch_party_name_required">Please enter a name</string>
+    <string name="watch_party_create">Create Room</string>
+    <string name="watch_party_or_join">— or join a room —</string>
+    <string name="watch_party_code_hint">Room Code (6 letters)</string>
+    <string name="watch_party_code_required">Please enter a room code</string>
+    <string name="watch_party_join">Join Room</string>
+    <string name="watch_party_leave">Leave</string>
+    <string name="watch_party_code_label">Room: %s</string>
+    <string name="watch_party_code_copied">Room code copied!</string>
+    <string name="watch_party_synced">● Synced</string>
+    <string name="watch_party_syncing">⟳ Syncing…</string>
+    <string name="watch_party_message_hint">Message…</string>
+    <string name="watch_party_send">Send</string>
     <string name="main_menu_theme_change">Change Theme</string>
     <string name="theme_default">Default</string>
     <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
