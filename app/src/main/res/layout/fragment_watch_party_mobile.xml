@@ -24,24 +24,18 @@
         android:orientation="vertical"
         android:visibility="visible">
 
-        <com.google.android.material.textfield.TextInputLayout
+        <EditText
+            android:id="@+id/et_display_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/watch_party_name_hint"
-            app:boxBackgroundMode="outline"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+            android:imeOptions="actionNext"
+            android:inputType="textPersonName|textCapWords"
+            android:maxLength="32"
+            android:background="@drawable/bg_search_edittext"
+            android:padding="12dp" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_display_name"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:imeOptions="actionNext"
-                android:inputType="textPersonName|textCapWords"
-                android:maxLength="32" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.button.MaterialButton
+        <Button
             android:id="@+id/btn_create_room"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -57,30 +51,24 @@
             android:alpha="0.6"
             android:text="@string/watch_party_or_join" />
 
-        <com.google.android.material.textfield.TextInputLayout
+        <EditText
+            android:id="@+id/et_room_code"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/watch_party_code_hint"
-            app:boxBackgroundMode="outline"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+            android:imeOptions="actionDone"
+            android:inputType="textCapCharacters"
+            android:maxLength="6"
+            android:background="@drawable/bg_search_edittext"
+            android:padding="12dp" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_room_code"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:imeOptions="actionDone"
-                android:inputType="textCapCharacters"
-                android:maxLength="6" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.button.MaterialButton
+        <Button
             android:id="@+id/btn_join_room"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="@string/watch_party_join"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            style="?android:attr/buttonBarButtonStyle" />
 
         <TextView
             android:id="@+id/tv_connect_error"
@@ -133,12 +121,12 @@
                     tools:text="● Synced" />
             </LinearLayout>
 
-            <com.google.android.material.button.MaterialButton
+            <Button
                 android:id="@+id/btn_leave"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/watch_party_leave"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                style="?android:attr/buttonBarButtonStyle" />
         </LinearLayout>
 
         <!-- Members -->
