@@ -22,7 +22,9 @@ import kotlin.math.abs
 
 object WatchPartyManager {
 
-    private const val WS_URL = "wss://streambert-xrmy.onrender.com"
+    // OkHttp negotiates the WebSocket upgrade itself, so the request URL must use
+    // the http/https scheme. Passing ws/wss throws IllegalArgumentException and crashes.
+    private const val WS_URL = "https://streambert-xrmy.onrender.com"
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val client = OkHttpClient()
@@ -192,7 +194,13 @@ object WatchPartyManager {
         prevTimeMs = -1L
         prevPlaying = false
 
-        val request = Request.Builder().url(WS_URL).build()
+        val request = try {
+            Request.Builder().url(WS_URL).build()
+        } catch (e: Exception) {
+            _connectError.value = "Could not reach the server. Try again."
+            _connecting.value = false
+            return
+        }
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 afterOpen(webSocket, name)
