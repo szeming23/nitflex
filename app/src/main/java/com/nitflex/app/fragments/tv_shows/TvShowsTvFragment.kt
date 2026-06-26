@@ -65,7 +65,7 @@ class TvShowsTvFragment : Fragment() {
                     is TvShowsViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()
                         if (code == 401) {
-                            Toast.makeText(requireContext(), getString(R.string.error_401_api_key), Toast.LENGTH_LONG).show()
+                            Toast.makeText(requireContext(), getString(com.nitflex.app.R.string.error_401_api_key), Toast.LENGTH_LONG).show()
                             return@collect
                         }
                         if (code == 409 && !hasAutoCleared409) {
