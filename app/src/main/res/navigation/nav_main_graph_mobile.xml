@@ -75,6 +75,16 @@
             app:destination="@id/tv_show" />
     </fragment>
     <fragment
+        android:id="@+id/explore"
+        android:name="com.nitflex.app.fragments.explore.ExploreMobileFragment"
+        android:label="fragment_explore_mobile"
+        tools:layout="@layout/fragment_explore_mobile" />
+    <fragment
+        android:id="@+id/my_list"
+        android:name="com.nitflex.app.fragments.my_list.MyListMobileFragment"
+        android:label="fragment_my_list_mobile"
+        tools:layout="@layout/fragment_my_list_mobile" />
+    <fragment
         android:id="@+id/movie"
         android:name="com.nitflex.app.fragments.movie.MovieMobileFragment"
         android:label="fragment_movie_mobile"

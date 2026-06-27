@@ -24,7 +24,7 @@ import com.nitflex.app.utils.UserPreferences
         Season::class,
         TvShow::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -104,6 +104,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addMigrations(MIGRATION_5_6)
                 .addMigrations(MIGRATION_6_7)
                 .addMigrations(MIGRATION_7_8)
+                .addMigrations(MIGRATION_8_9)
                 .build()
         }
 
@@ -178,8 +179,18 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_7_8: Migration = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // No SQL changes needed as indices were already created in previous migrations 
+                // No SQL changes needed as indices were already created in previous migrations
                 // but are now formally declared in Entity classes, requiring a version bump.
+            }
+        }
+
+        private val MIGRATION_8_9: Migration = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // User rating (1-10) + free-text review for the "Reviewed" bucket in My List.
+                db.execSQL("ALTER TABLE movies ADD COLUMN userRating INTEGER")
+                db.execSQL("ALTER TABLE movies ADD COLUMN userReview TEXT")
+                db.execSQL("ALTER TABLE tv_shows ADD COLUMN userRating INTEGER")
+                db.execSQL("ALTER TABLE tv_shows ADD COLUMN userReview TEXT")
             }
         }
     }

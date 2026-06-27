@@ -156,7 +156,14 @@ class HomeMobileFragment : Fragment() {
         binding.ivHomeBackground.visibility = View.GONE
     }
 
-    private fun displayHome(categories: List<Category>) {
+    private fun displayHome(allCategories: List<Category>) {
+        // Continue Watching + Favorites now live in the My List tab, so drop them from Home.
+        val categories = allCategories.filterNot {
+            it.name == Category.CONTINUE_WATCHING ||
+                it.name == Category.FAVORITE_MOVIES ||
+                it.name == Category.FAVORITE_TV_SHOWS
+        }
+
         categories
             .find { it.name == Category.FEATURED }
             ?.also {

@@ -50,6 +50,9 @@ class Movie(
     var released = released?.toCalendar()
     var favoritedAtMillis: Long? = null
 
+    var userRating: Int? = null
+    var userReview: String? = null
+
     override var isWatched: Boolean = false
     override var watchedDate: Calendar? = null
 
@@ -63,6 +66,8 @@ class Movie(
         if (isWatched != movie.isWatched) return false
         if (watchedDate != movie.watchedDate) return false
         if (watchHistory != movie.watchHistory) return false
+        if (userRating != movie.userRating) return false
+        if (userReview != movie.userReview) return false
         return true
     }
 
@@ -72,6 +77,8 @@ class Movie(
         this.isWatched = movie.isWatched
         this.watchedDate = movie.watchedDate
         this.watchHistory = movie.watchHistory
+        this.userRating = movie.userRating
+        this.userReview = movie.userReview
         return this
     }
 
@@ -147,6 +154,8 @@ class Movie(
         if (isWatched != other.isWatched) return false
         if (watchedDate != other.watchedDate) return false
         if (watchHistory != other.watchHistory) return false
+        if (userRating != other.userRating) return false
+        if (userReview != other.userReview) return false
         if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
         return itemType == other.itemType
     }
@@ -172,6 +181,8 @@ class Movie(
         result = 31 * result + isWatched.hashCode()
         result = 31 * result + (watchedDate?.hashCode() ?: 0)
         result = 31 * result + (watchHistory?.hashCode() ?: 0)
+        result = 31 * result + (userRating ?: 0)
+        result = 31 * result + (userReview?.hashCode() ?: 0)
         result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
         return result
     }

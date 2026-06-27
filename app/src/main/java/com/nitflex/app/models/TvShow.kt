@@ -55,6 +55,9 @@ class TvShow(
     var released = released?.toCalendar()
     var favoritedAtMillis: Long? = null
 
+    var userRating: Int? = null
+    var userReview: String? = null
+
     var isWatching: Boolean = true
 
     val episodeToWatch: Episode?
@@ -89,6 +92,8 @@ class TvShow(
         if (isFavorite != tvShow.isFavorite) return false
         if (favoritedAtMillis != tvShow.favoritedAtMillis) return false
         if (isWatching != tvShow.isWatching) return false
+        if (userRating != tvShow.userRating) return false
+        if (userReview != tvShow.userReview) return false
         return true
     }
 
@@ -96,6 +101,8 @@ class TvShow(
         this.isFavorite = tvShow.isFavorite
         this.favoritedAtMillis = tvShow.favoritedAtMillis
         this.isWatching = tvShow.isWatching
+        this.userRating = tvShow.userRating
+        this.userReview = tvShow.userReview
         return this
     }
 
@@ -171,7 +178,8 @@ class TvShow(
         if (isFavorite != other.isFavorite) return false
         if (favoritedAtMillis != other.favoritedAtMillis) return false
         if (isWatching != other.isWatching) return false
-        if (isFavorite != other.isFavorite) return false
+        if (userRating != other.userRating) return false
+        if (userReview != other.userReview) return false
         if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
         return itemType == other.itemType
     }
@@ -196,6 +204,8 @@ class TvShow(
         result = 31 * result + isFavorite.hashCode()
         result = 31 * result + (favoritedAtMillis?.hashCode() ?: 0)
         result = 31 * result + isWatching.hashCode()
+        result = 31 * result + (userRating ?: 0)
+        result = 31 * result + (userReview?.hashCode() ?: 0)
         result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
         return result
     }

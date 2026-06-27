@@ -51,5 +51,8 @@ class Category(
         const val CONTINUE_WATCHING = "Continue Watching"
         const val FAVORITE_MOVIES = "Favorite movies"
         const val FAVORITE_TV_SHOWS = "Favorite TV shows"
+        const val MY_LIST_WATCHLIST = "Watchlist"
+        const val MY_LIST_CONTINUE = "Continue"
+        const val MY_LIST_REVIEWED = "Reviewed"
     }
 }

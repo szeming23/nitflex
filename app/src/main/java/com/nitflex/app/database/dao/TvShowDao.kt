@@ -30,6 +30,9 @@ interface TvShowDao {
     @Query("SELECT * FROM tv_shows WHERE isFavorite = 1 ORDER BY favoritedAtMillis DESC")
     fun getFavorites(): Flow<List<TvShow>>
 
+    @Query("SELECT * FROM tv_shows WHERE userRating IS NOT NULL ORDER BY userRating DESC, title ASC")
+    fun getReviewed(): Flow<List<TvShow>>
+
     @Query("SELECT * FROM tv_shows WHERE isFavorite = 1 OR poster IS NULL OR poster = '' OR banner IS NULL OR banner = ''")
     suspend fun getArtworkRepairCandidates(): List<TvShow>
 
@@ -112,4 +115,19 @@ interface TvShowDao {
 
     @Query("UPDATE tv_shows SET isFavorite = :favorite, favoritedAtMillis = :favoritedAtMillis WHERE id = :id")
     fun setFavorite(id: String, favorite: Boolean, favoritedAtMillis: Long?)
+
+    @Query("UPDATE tv_shows SET userRating = :rating, userReview = :review WHERE id = :id")
+    fun setReview(id: String, rating: Int?, review: String?)
+
+    @Transaction
+    fun upsertReview(tvShow: TvShow, rating: Int?, review: String?) {
+        val existing = getById(tvShow.id)
+        if (existing != null) {
+            setReview(tvShow.id, rating, review)
+        } else {
+            tvShow.userRating = rating
+            tvShow.userReview = review
+            insert(tvShow)
+        }
+    }
 }
