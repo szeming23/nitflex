@@ -136,7 +136,9 @@ class PlayerTvFragment : Fragment() {
 
     private val args by navArgs<PlayerTvFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
-    private val viewModel by viewModelsFactory { PlayerViewModel(args.videoType, args.id) }
+    private val viewModel by viewModelsFactory {
+        PlayerViewModel(args.videoType, args.id, database.serverPreferenceDao())
+    }
 
     private lateinit var player: ExoPlayer
     private lateinit var httpDataSource: HttpDataSource.Factory
@@ -1211,6 +1213,11 @@ class PlayerTvFragment : Fragment() {
                     val hasUri = player.currentMediaItem?.localConfiguration?.uri
                         ?.toString()?.isNotEmpty()
                         ?: false
+
+                    if (isPlaying && hasUri) {
+                        // Playback actually started: remember this server for the next episode.
+                        viewModel.rememberWorkingServer(currentServer)
+                    }
 
                     if (!isPlaying && hasUri) {
                         val videoType = args.videoType
