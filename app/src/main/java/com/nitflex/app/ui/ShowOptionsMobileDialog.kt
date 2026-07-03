@@ -120,6 +120,7 @@ class ShowOptionsMobileDialog(
         }
 
         binding.btnOptionShowFavorite.visibility = View.GONE
+        binding.btnOptionShowRate.visibility = View.GONE
 
         binding.btnOptionShowWatched.apply {
             setOnClickListener {
@@ -337,6 +338,16 @@ class ShowOptionsMobileDialog(
             visibility = View.VISIBLE
         }
 
+        binding.btnOptionShowRate.apply {
+            setOnClickListener {
+                checkProviderAndRun(freshMovie) {
+                    RateReviewMobileDialog(context, freshMovie).show()
+                }
+                hide()
+            }
+            visibility = View.VISIBLE
+        }
+
         binding.btnOptionProgramClear.apply {
             setOnClickListener {
                 checkProviderAndRun(freshMovie) {
@@ -406,5 +417,20 @@ class ShowOptionsMobileDialog(
             }
             visibility = View.VISIBLE
         }
+
+        binding.btnOptionShowRate.apply {
+            setOnClickListener {
+                checkProviderAndRun(freshTvShow) {
+                    RateReviewMobileDialog(context, freshTvShow).show()
+                }
+                hide()
+            }
+            visibility = View.VISIBLE
+        }
+
+        // Movie/episode-only actions are not applicable to a whole TV show.
+        binding.btnOptionShowWatched.visibility = View.GONE
+        binding.btnOptionEpisodeMarkAllPreviousWatched.visibility = View.GONE
+        binding.btnOptionProgramClear.visibility = View.GONE
     }
 }

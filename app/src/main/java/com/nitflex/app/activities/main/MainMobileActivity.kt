@@ -31,7 +31,6 @@ import com.nitflex.app.databinding.ActivityMainMobileBinding
 import com.nitflex.app.fragments.player.PlayerMobileFragment
 import com.nitflex.app.providers.Cine24hProvider
 import com.nitflex.app.providers.FilmyOnlineCcProvider
-import com.nitflex.app.providers.IptvProvider
 import com.nitflex.app.providers.Provider
 import com.nitflex.app.ui.UpdateAppMobileDialog
 import com.nitflex.app.utils.AppLanguageManager
@@ -288,27 +287,14 @@ class MainMobileActivity : FragmentActivity() {
         val supportsMovies = Provider.supportsMovies(provider)
         val supportsTvShows = Provider.supportsTvShows(provider)
 
-        binding.bnvMain.menu.findItem(R.id.movies)?.isVisible = supportsMovies
-        binding.bnvMain.menu.findItem(R.id.tv_shows)?.apply {
-            isVisible = supportsTvShows
-            title = if (provider is IptvProvider) {
-                getString(R.string.main_menu_all_channels)
-            } else {
-                getString(R.string.main_menu_tv_shows)
-            }
-        }
+        // Explore merges Movies + TV Shows; show it if the provider supports either.
+        binding.bnvMain.menu.findItem(R.id.explore)?.isVisible = supportsMovies || supportsTvShows
 
         val navHost =
             supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
         val navController = navHost?.navController ?: return
-        when {
-            currentDestinationId == R.id.movies && !supportsMovies -> {
-                navController.navigate(R.id.tv_shows)
-            }
-
-            currentDestinationId == R.id.tv_shows && !supportsTvShows -> {
-                navController.navigate(R.id.home)
-            }
+        if (currentDestinationId == R.id.explore && !supportsMovies && !supportsTvShows) {
+            navController.navigate(R.id.home)
         }
     }
 
@@ -316,8 +302,8 @@ class MainMobileActivity : FragmentActivity() {
         return destinationId in setOf(
             R.id.search,
             R.id.home,
-            R.id.movies,
-            R.id.tv_shows,
+            R.id.explore,
+            R.id.my_list,
             R.id.watch_party,
             R.id.settings,
         )

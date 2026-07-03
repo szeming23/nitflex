@@ -35,6 +35,8 @@ import com.nitflex.app.databinding.ItemMovieGridMobileBinding
 import com.nitflex.app.databinding.ItemMovieGridTvBinding
 import com.nitflex.app.databinding.ItemMovieMobileBinding
 import com.nitflex.app.databinding.ItemMovieTvBinding
+import com.nitflex.app.fragments.explore.ExploreMobileFragment
+import com.nitflex.app.fragments.my_list.MyListMobileFragment
 import com.nitflex.app.fragments.genre.GenreMobileFragment
 import com.nitflex.app.fragments.genre.GenreMobileFragmentDirections
 import com.nitflex.app.fragments.genre.GenreTvFragment
@@ -313,6 +315,8 @@ class MovieViewHolder(
                         }
                         is MovieMobileFragment -> findNavController().navigate(MovieMobileFragmentDirections.actionMovieToMovie(id = movie.id))
                         is TvShowMobileFragment -> findNavController().navigate(TvShowMobileFragmentDirections.actionTvShowToMovie(id = movie.id))
+                        is MyListMobileFragment -> findNavController().navigate(R.id.movie, androidx.core.os.bundleOf("id" to movie.id))
+                        is ExploreMobileFragment -> findNavController().navigate(R.id.movie, androidx.core.os.bundleOf("id" to movie.id))
                     }
                 }
             }
@@ -456,6 +460,8 @@ class MovieViewHolder(
                         is MoviesMobileFragment -> findNavController().navigate(MoviesMobileFragmentDirections.actionMoviesToMovie(id = movie.id))
                         is PeopleMobileFragment -> findNavController().navigate(PeopleMobileFragmentDirections.actionPeopleToMovie(id = movie.id))
                         is SearchMobileFragment -> findNavController().navigate(SearchMobileFragmentDirections.actionSearchToMovie(id = movie.id))
+                        is ExploreMobileFragment -> findNavController().navigate(R.id.movie, androidx.core.os.bundleOf("id" to movie.id))
+                        is MyListMobileFragment -> findNavController().navigate(R.id.movie, androidx.core.os.bundleOf("id" to movie.id))
                     }
                 }
             }

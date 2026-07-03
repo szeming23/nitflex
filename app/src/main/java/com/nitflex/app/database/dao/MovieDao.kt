@@ -36,6 +36,24 @@ interface MovieDao {
     @Query("SELECT * FROM movies WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC")
     fun getWatchingMovies(): Flow<List<Movie>>
 
+    @Query("SELECT * FROM movies WHERE userRating IS NOT NULL ORDER BY userRating DESC, title ASC")
+    fun getReviewed(): Flow<List<Movie>>
+
+    @Query("UPDATE movies SET userRating = :rating, userReview = :review WHERE id = :id")
+    fun setReview(id: String, rating: Int?, review: String?)
+
+    @Transaction
+    fun upsertReview(movie: Movie, rating: Int?, review: String?) {
+        val existing = getById(movie.id)
+        if (existing != null) {
+            setReview(movie.id, rating, review)
+        } else {
+            movie.userRating = rating
+            movie.userReview = review
+            insert(movie)
+        }
+    }
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(movie: Movie)
 
