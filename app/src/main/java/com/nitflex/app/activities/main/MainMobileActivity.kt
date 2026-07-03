@@ -221,7 +221,7 @@ class MainMobileActivity : FragmentActivity() {
                 }
 
                 if (UserPreferences.currentProvider != null && currentDestinationId == R.id.home) {
-                    closeTask()
+                    confirmExit { closeTask() }
                     return
                 }
 
@@ -232,7 +232,7 @@ class MainMobileActivity : FragmentActivity() {
                     return
                 }
 
-                if (!navController.navigateUp()) finish()
+                if (!navController.navigateUp()) confirmExit { finish() }
             }
         })
 
@@ -344,6 +344,17 @@ class MainMobileActivity : FragmentActivity() {
         } else {
             finishAffinity()
         }
+    }
+
+    private fun confirmExit(onExit: () -> Unit) {
+        if (isFinishing || isDestroyed) return
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.exit_app_title)
+            .setMessage(R.string.exit_app_message)
+            .setPositiveButton(R.string.exit_app_confirm) { _, _ -> onExit() }
+            .setNegativeButton(R.string.exit_app_cancel, null)
+            .show()
     }
 
     private suspend fun requestResolverPayload(wsUrl: String, token: String): ResolverPayload? =
