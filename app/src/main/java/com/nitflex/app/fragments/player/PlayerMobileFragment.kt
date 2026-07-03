@@ -117,7 +117,9 @@ class PlayerMobileFragment : Fragment() {
 
     private val args by navArgs<PlayerMobileFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
-    private val viewModel by viewModelsFactory { PlayerViewModel(args.videoType, args.id) }
+    private val viewModel by viewModelsFactory {
+        PlayerViewModel(args.videoType, args.id, database.serverPreferenceDao())
+    }
 
     private lateinit var player: ExoPlayer
     private lateinit var httpDataSource: HttpDataSource.Factory
@@ -321,6 +323,7 @@ class PlayerMobileFragment : Fragment() {
                                 } else {
                                     "No servers found for this content."
                                 }
+                                preserveResumePointOnServerFailure()
                                 Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                                 findNavController().navigateUp()
                                 return@collect
@@ -344,6 +347,7 @@ class PlayerMobileFragment : Fragment() {
                     }
 
                     is PlayerViewModel.State.FailedLoadingServers -> {
+                        preserveResumePointOnServerFailure()
                         Toast.makeText(
                             requireContext(),
                             state.error.message ?: "",
@@ -391,6 +395,7 @@ class PlayerMobileFragment : Fragment() {
                                 "All servers failed to load the video."
                             }
                             
+                            preserveResumePointOnServerFailure()
                             Toast.makeText(
                                 requireContext(),
                                 message,
@@ -1112,6 +1117,11 @@ class PlayerMobileFragment : Fragment() {
                     ?.toString()?.isNotEmpty()
                     ?: false
 
+                if (isPlaying && hasUri) {
+                    // Playback actually started: remember this server for the next episode.
+                    viewModel.rememberWorkingServer(currentServer)
+                }
+
                 if (!isPlaying && hasUri) {
                     val videoType = args.videoType
                     val watchItem: WatchItem? = when (videoType) {
@@ -1323,6 +1333,59 @@ class PlayerMobileFragment : Fragment() {
         episodeDao.save(persistedNextEpisode)
         UserDataCache.syncEpisodeToCache(requireContext(), provider, persistedNextEpisode)
     }
+
+    /**
+     * Keeps the episode the user was trying to watch as the resume point when playback can't
+     * start (no server / all servers failed). Without this, an episode that had no watch
+     * record (e.g. the "next to watch") leaves nothing pointing at it after a failed attempt,
+     * so continue-watching falls back to an earlier episode. Preserves existing progress and
+     * never resurrects a finished episode.
+     */
+    private fun preserveResumePointOnServerFailure() {
+        val type = args.videoType as? Video.Type.Episode ?: return
+        val provider = UserPreferences.currentProvider ?: return
+        val episodeDao = database.episodeDao()
+        val existing = episodeDao.getById(type.id)
+        if (existing?.isWatched == true) return
+
+        val episode = existing?.apply {
+            if (watchHistory == null) {
+                watchHistory = WatchItem.WatchHistory(
+                    lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                    lastPlaybackPositionMillis = 0L,
+                    durationMillis = 0L,
+                )
+            }
+        } ?: Episode(
+            id = type.id,
+            number = type.number,
+            title = type.title,
+            poster = type.poster,
+            overview = type.overview,
+            tvShow = database.tvShowDao().getById(type.tvShow.id) ?: TvShow(
+                id = type.tvShow.id,
+                title = type.tvShow.title,
+                poster = type.tvShow.poster,
+                banner = type.tvShow.banner,
+            ),
+            season = Season(
+                number = type.season.number,
+                title = type.season.title,
+            ),
+        ).apply {
+            isWatched = false
+            watchedDate = null
+            watchHistory = WatchItem.WatchHistory(
+                lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                lastPlaybackPositionMillis = 0L,
+                durationMillis = 0L,
+            )
+        }
+
+        episodeDao.save(episode)
+        UserDataCache.syncEpisodeToCache(requireContext(), provider, episode)
+    }
+
     private fun startProgressHandler() {
         progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
         progressRunnable = Runnable {

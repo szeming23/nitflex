@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nitflex.app.database.dao.ServerPreferenceDao
+import com.nitflex.app.models.ServerPreference
 import com.nitflex.app.models.Video
 import com.nitflex.app.utils.CustomTabHelper
 import com.nitflex.app.utils.EpisodeManager
@@ -22,6 +24,7 @@ import com.nitflex.app.utils.SubDL
 class PlayerViewModel(
     videoType: Video.Type,
     id: String,
+    private val serverPreferenceDao: ServerPreferenceDao? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<State>(State.LoadingServers)
@@ -98,20 +101,75 @@ class PlayerViewModel(
         Log.d("PlayerViewModel", "Inizio ricerca server per ID: $id")
         lastVideoType = videoType
         lastId = id
+        // Reset per-content state used for auto English subtitle selection.
+        videoIsReady = false
+        autoEnglishApplied = false
+        userPickedSubtitle = false
+        pendingAutoEnglish = null
         _state.emit(State.LoadingServers)
         try {
             val servers = UserPreferences.currentProvider!!.getServers(id, videoType)
             if (servers.isEmpty()) throw Exception("No servers found")
-            
+
+            // Put the server that last played this show first, so we don't loop through
+            // every server again for each new episode.
+            val orderedServers = reorderByPreferredServer(servers, videoType)
+
             // LOG POTENZIATO: Mostra tutti i server disponibili per il player
             Log.i("NitflexES", "[SERVERS LIST] -> Provider: ${UserPreferences.currentProvider!!.name}")
-            Log.i("NitflexES", "[SERVERS LIST] -> Found ${servers.size} servers: ${servers.joinToString { it.name }}")
+            Log.i("NitflexES", "[SERVERS LIST] -> Found ${orderedServers.size} servers: ${orderedServers.joinToString { it.name }}")
 
-            Log.d("PlayerViewModel", "Ricerca server completata: ${servers.size} server trovati")
-            _state.emit(State.SuccessLoadingServers(servers))
+            Log.d("PlayerViewModel", "Ricerca server completata: ${orderedServers.size} server trovati")
+            _state.emit(State.SuccessLoadingServers(orderedServers))
         } catch (e: Exception) {
             Log.e("PlayerViewModel", "Errore ricerca server: ", e)
             _state.emit(State.FailedLoadingServers(e))
+        }
+    }
+
+    /**
+     * Returns [servers] with the remembered working server for this TV show moved to the
+     * front (matched by name, which is stable across episodes). Original relative order of
+     * the remaining servers is preserved. No-op for movies or when nothing is remembered.
+     */
+    private fun reorderByPreferredServer(
+        servers: List<Video.Server>,
+        videoType: Video.Type,
+    ): List<Video.Server> {
+        val tvShowId = (videoType as? Video.Type.Episode)?.tvShow?.id ?: return servers
+        val preferredName = try {
+            serverPreferenceDao?.getByTvShowId(tvShowId)?.serverName
+        } catch (e: Exception) {
+            Log.e("PlayerViewModel", "Errore lettura server preferito: ", e)
+            null
+        } ?: return servers
+
+        val preferred = servers.filter { it.name == preferredName }
+        if (preferred.isEmpty()) return servers
+
+        Log.i("NitflexES", "[SERVERS LIST] -> Preferred server for show: $preferredName")
+        return preferred + servers.filterNot { it.name == preferredName }
+    }
+
+    /**
+     * Persists [server] as the working server for the current TV show, so the next episode
+     * tries it first. Called by the player once playback has actually started.
+     */
+    fun rememberWorkingServer(server: Video.Server?) {
+        val name = server?.name ?: return
+        val tvShowId = (lastVideoType as? Video.Type.Episode)?.tvShow?.id ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                serverPreferenceDao?.save(
+                    ServerPreference(
+                        tvShowId = tvShowId,
+                        serverName = name,
+                        updatedAt = System.currentTimeMillis(),
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Errore salvataggio server preferito: ", e)
+            }
         }
     }
 
@@ -139,6 +197,11 @@ class PlayerViewModel(
 
             Log.d("PlayerViewModel", "Estrazione video completata con successo")
             _state.emit(State.SuccessLoadingVideo(video, server))
+
+            // A real playable video is now on screen; apply the auto English subtitle if
+            // its search already finished.
+            videoIsReady = true
+            maybeApplyAutoEnglishSubtitle()
         } catch (e: Exception) {
             Log.e("PlayerViewModel", "Errore estrazione video: ", e)
             _state.emit(State.FailedLoadingVideo(e, server))
@@ -167,6 +230,13 @@ class PlayerViewModel(
                 
                 Log.d("PlayerViewModel", "Ricerca OpenSubtitles completata: ${subtitles.size} risultati")
                 _subtitleState.emit(SubtitleState.SuccessOpenSubtitles(subtitles))
+
+                // Remember the best English track (most downloaded) so it can be enabled
+                // automatically once the video is ready.
+                pendingAutoEnglish = subtitles
+                    .filter { it.isEnglish() }
+                    .maxByOrNull { it.subDownloadsCnt?.toIntOrNull() ?: 0 }
+                maybeApplyAutoEnglishSubtitle()
             } catch (e: Exception) {
                 Log.e("PlayerViewModel", "Errore OpenSubtitles: ", e)
                 _subtitleState.emit(SubtitleState.FailedOpenSubtitles(e))
@@ -202,7 +272,9 @@ class PlayerViewModel(
         }
     }
 
-    fun downloadSubtitle(subtitle: OpenSubtitles.Subtitle) = viewModelScope.launch(Dispatchers.IO) {
+    fun downloadSubtitle(subtitle: OpenSubtitles.Subtitle, isAuto: Boolean = false) = viewModelScope.launch(Dispatchers.IO) {
+        // A manual pick should not be overridden by the automatic English selection.
+        if (!isAuto) userPickedSubtitle = true
         Log.d("PlayerViewModel", "Inizio download sottotitolo OpenSubtitles: ${subtitle.subFileName}")
         _subtitleState.emit(SubtitleState.DownloadingOpenSubtitle)
         try {
@@ -216,6 +288,7 @@ class PlayerViewModel(
     }
 
     fun downloadSubDLSubtitle(subtitle: SubDL.Subtitle) = viewModelScope.launch(Dispatchers.IO) {
+        userPickedSubtitle = true
         Log.d("PlayerViewModel", "Inizio download sottotitolo SubDL: ${subtitle.name}")
         _subtitleState.emit(SubtitleState.DownloadingSubDLSubtitle)
         try {
@@ -253,6 +326,33 @@ class PlayerViewModel(
     }
     private var lastVideoType: Video.Type? = null
     private var lastId: String? = null
+
+    // Auto English subtitle state (reset per content in getServers).
+    private var videoIsReady = false
+    private var autoEnglishApplied = false
+    private var userPickedSubtitle = false
+    private var pendingAutoEnglish: OpenSubtitles.Subtitle? = null
+
+    /**
+     * Enables the best English subtitle automatically once both the video is playable and
+     * the OpenSubtitles search has produced an English result. Skipped if the user has
+     * already chosen a subtitle for this content, or if it was already applied.
+     */
+    private fun maybeApplyAutoEnglishSubtitle() {
+        if (!videoIsReady) return
+        if (autoEnglishApplied || userPickedSubtitle) return
+        val subtitle = pendingAutoEnglish ?: return
+        autoEnglishApplied = true
+        Log.i("NitflexES", "[AUTO SUBS] -> Enabling English subtitle: ${subtitle.subFileName}")
+        downloadSubtitle(subtitle, isAuto = true)
+    }
+
+    private fun OpenSubtitles.Subtitle.isEnglish(): Boolean {
+        return languageName?.equals("English", ignoreCase = true) == true ||
+                subLanguageID?.equals("eng", ignoreCase = true) == true ||
+                iso639?.equals("en", ignoreCase = true) == true
+    }
+
     fun reloadServersAfterBypass() {
         val type = lastVideoType ?: return
         val id = lastId ?: return
