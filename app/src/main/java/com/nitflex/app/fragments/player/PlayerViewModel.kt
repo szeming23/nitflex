@@ -128,48 +128,66 @@ class PlayerViewModel(
     }
 
     /**
-     * Returns [servers] with the remembered working server for this TV show moved to the
-     * front (matched by name, which is stable across episodes). Original relative order of
-     * the remaining servers is preserved. No-op for movies or when nothing is remembered.
+     * Stable key for the content whose working server we remember: the TV show id for
+     * episodes (so all episodes of a show share it) or the movie id for movies.
+     */
+    private fun contentKeyFor(videoType: Video.Type?): String? = when (videoType) {
+        is Video.Type.Episode -> videoType.tvShow.id.takeIf { it.isNotBlank() }
+        is Video.Type.Movie -> videoType.id.takeIf { it.isNotBlank() }
+        null -> null
+    }
+
+    /**
+     * Returns [servers] with the remembered working server moved to the front (matched by
+     * name, which is stable across episodes). Original relative order of the remaining
+     * servers is preserved. No-op when nothing is remembered.
      */
     private fun reorderByPreferredServer(
         servers: List<Video.Server>,
         videoType: Video.Type,
     ): List<Video.Server> {
-        val tvShowId = (videoType as? Video.Type.Episode)?.tvShow?.id ?: return servers
+        val key = contentKeyFor(videoType) ?: return servers
         val preferredName = try {
-            serverPreferenceDao?.getByTvShowId(tvShowId)?.serverName
+            serverPreferenceDao?.getByTvShowId(key)?.serverName
         } catch (e: Exception) {
             Log.e("PlayerViewModel", "Errore lettura server preferito: ", e)
             null
-        } ?: return servers
+        }
+        if (preferredName.isNullOrBlank()) {
+            Log.i("NitflexES", "[SERVER MEMORY] -> No remembered server for key=$key")
+            return servers
+        }
 
         val preferred = servers.filter { it.name == preferredName }
-        if (preferred.isEmpty()) return servers
+        if (preferred.isEmpty()) {
+            Log.i("NitflexES", "[SERVER MEMORY] -> Remembered '$preferredName' not in current list ${servers.joinToString { it.name }}")
+            return servers
+        }
 
-        Log.i("NitflexES", "[SERVERS LIST] -> Preferred server for show: $preferredName")
+        Log.i("NitflexES", "[SERVER MEMORY] -> Trying remembered server first: '$preferredName' (key=$key)")
         return preferred + servers.filterNot { it.name == preferredName }
     }
 
     /**
-     * Persists [server] as the working server for the current TV show, so the next episode
-     * tries it first. Called by the player once playback has actually started.
+     * Persists [server] as the working server for the current content, so it's tried first
+     * next time. Called by the player once playback has actually started. Written
+     * synchronously so it survives the player being closed right after playback begins
+     * (Room is configured with allowMainThreadQueries).
      */
     fun rememberWorkingServer(server: Video.Server?) {
         val name = server?.name ?: return
-        val tvShowId = (lastVideoType as? Video.Type.Episode)?.tvShow?.id ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                serverPreferenceDao?.save(
-                    ServerPreference(
-                        tvShowId = tvShowId,
-                        serverName = name,
-                        updatedAt = System.currentTimeMillis(),
-                    )
+        val key = contentKeyFor(lastVideoType) ?: return
+        try {
+            serverPreferenceDao?.save(
+                ServerPreference(
+                    tvShowId = key,
+                    serverName = name,
+                    updatedAt = System.currentTimeMillis(),
                 )
-            } catch (e: Exception) {
-                Log.e("PlayerViewModel", "Errore salvataggio server preferito: ", e)
-            }
+            )
+            Log.i("NitflexES", "[SERVER MEMORY] -> Saved working server '$name' for key=$key")
+        } catch (e: Exception) {
+            Log.e("PlayerViewModel", "Errore salvataggio server preferito: ", e)
         }
     }
 
