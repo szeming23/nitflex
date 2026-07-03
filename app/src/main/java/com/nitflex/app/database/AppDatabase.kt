@@ -27,7 +27,7 @@ import com.nitflex.app.utils.UserPreferences
         TvShow::class,
         ServerPreference::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -110,6 +110,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addMigrations(MIGRATION_6_7)
                 .addMigrations(MIGRATION_7_8)
                 .addMigrations(MIGRATION_8_9)
+                .addMigrations(MIGRATION_9_10)
                 .build()
         }
 
@@ -194,6 +195,16 @@ abstract class AppDatabase : RoomDatabase() {
                 // Remembers the last working server per TV show so the player can try it
                 // first for the next episode instead of looping through every server.
                 db.execSQL("CREATE TABLE IF NOT EXISTS `server_preferences` (`tvShowId` TEXT NOT NULL, `serverName` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`tvShowId`))")
+            }
+        }
+
+        private val MIGRATION_9_10: Migration = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // User rating (1-10) + free-text review for the "Reviewed" bucket in My List.
+                db.execSQL("ALTER TABLE movies ADD COLUMN userRating INTEGER")
+                db.execSQL("ALTER TABLE movies ADD COLUMN userReview TEXT")
+                db.execSQL("ALTER TABLE tv_shows ADD COLUMN userRating INTEGER")
+                db.execSQL("ALTER TABLE tv_shows ADD COLUMN userReview TEXT")
             }
         }
     }
