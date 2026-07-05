@@ -233,19 +233,31 @@ class PlayerViewModel(
         launch {
             try {
                 Log.d("PlayerViewModel", "Inizio ricerca OpenSubtitles")
-                val subtitles = when (videoType) {
-                    is Video.Type.Episode -> {
-                        OpenSubtitles.search(
-                            query = videoType.tvShow.title,
-                            season = videoType.season.number,
-                            episode = videoType.number,
-                        )
-                    }
-                    is Video.Type.Movie -> {
-                        OpenSubtitles.search(query = videoType.title)
-                    }
-                }.sortedWith(compareBy({ it.languageName }, { it.subDownloadsCnt }))
-                
+                val season = (videoType as? Video.Type.Episode)?.season?.number
+                val episode = (videoType as? Video.Type.Episode)?.number
+                // Query variants: the raw title plus a normalized one (brackets / audio tags
+                // stripped) so anime titles from providers like AnimeAV1 still match.
+                val queries = subtitleSearchTitles(videoType)
+
+                // Run a general (all-language) search for the picker AND an explicit
+                // English-only search for each title variant, then merge + de-duplicate.
+                // Scoping to English surfaces English tracks that a mixed-language result
+                // set can crowd out or omit entirely.
+                val results = mutableListOf<OpenSubtitles.Subtitle>()
+                for (q in queries) {
+                    // Resilient per call: one failing request must not wipe out the others.
+                    results += runCatching {
+                        OpenSubtitles.search(query = q, season = season, episode = episode)
+                    }.getOrDefault(emptyList())
+                    results += runCatching {
+                        OpenSubtitles.search(query = q, season = season, episode = episode, subLanguageId = "eng")
+                    }.getOrDefault(emptyList())
+                }
+
+                val subtitles = results
+                    .distinctBy { it.idSubtitleFile ?: it.subDownloadLink }
+                    .sortedWith(compareBy({ it.languageName }, { it.subDownloadsCnt }))
+
                 Log.d("PlayerViewModel", "Ricerca OpenSubtitles completata: ${subtitles.size} risultati")
                 _subtitleState.emit(SubtitleState.SuccessOpenSubtitles(subtitles))
 
@@ -264,23 +276,24 @@ class PlayerViewModel(
         launch {
             try {
                 Log.d("PlayerViewModel", "Inizio ricerca SubDL")
-                val subtitles = when (videoType) {
-                    is Video.Type.Episode -> {
+                val season = (videoType as? Video.Type.Episode)?.season?.number
+                val episode = (videoType as? Video.Type.Episode)?.number
+                val type = if (videoType is Video.Type.Episode) "tv" else "movie"
+
+                // Search each title variant, explicitly asking SubDL for English subtitles
+                // (previously no language was requested, so English was often missing).
+                val subtitles = subtitleSearchTitles(videoType)
+                    .flatMap { q ->
                         SubDL.search(
-                            filmName = videoType.tvShow.title,
-                            seasonNumber = videoType.season.number,
-                            episodeNumber = videoType.number,
-                            type = "tv"
+                            filmName = q,
+                            seasonNumber = season,
+                            episodeNumber = episode,
+                            type = type,
+                            languages = "EN",
                         )
                     }
-                    is Video.Type.Movie -> {
-                        SubDL.search(
-                            filmName = videoType.title,
-                            type = "movie"
-                        )
-                    }
-                }
-                
+                    .distinctBy { it.url ?: (it.releaseName ?: it.name) }
+
                 Log.d("PlayerViewModel", "Ricerca SubDL completata: ${subtitles.size} risultati")
                 _subtitleState.emit(SubtitleState.SuccessSubDLSubtitles(subtitles))
             } catch (e: Exception) {
@@ -288,6 +301,30 @@ class PlayerViewModel(
                 _subtitleState.emit(SubtitleState.FailedSubDLSubtitles(e))
             }
         }
+    }
+
+    /**
+     * Title variants to query subtitle providers with. Returns the raw title and, when it
+     * differs, a normalized form with bracketed/parenthetical segments and common Spanish
+     * audio tags removed — so anime titles (e.g. from AnimeAV1) match OpenSubtitles/SubDL,
+     * which index English/romaji names rather than localized ones.
+     */
+    private fun subtitleSearchTitles(videoType: Video.Type): List<String> {
+        val raw = when (videoType) {
+            is Video.Type.Episode -> videoType.tvShow.title
+            is Video.Type.Movie -> videoType.title
+        }.trim()
+
+        val normalized = raw
+            .replace(Regex("[\\(\\[（【][^)\\]）】]*[)\\]）】]"), " ") // (…) […] （…） 【…】
+            .replace(Regex("(?i)\\b(audio\\s+)?(latino|castellano|espa[nñ]ol|sub\\s*espa[nñ]ol)\\b"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+        return listOfNotNull(
+            raw.takeIf { it.isNotBlank() },
+            normalized.takeIf { it.isNotBlank() && !it.equals(raw, ignoreCase = true) },
+        ).ifEmpty { listOf(raw) }
     }
 
     fun downloadSubtitle(subtitle: OpenSubtitles.Subtitle, isAuto: Boolean = false) = viewModelScope.launch(Dispatchers.IO) {
