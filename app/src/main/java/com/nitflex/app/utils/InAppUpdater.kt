@@ -14,8 +14,19 @@ import kotlin.math.max
 
 object InAppUpdater {
 
-    private const val GITHUB_OWNER = "streamflix-reborn"
-    private const val GITHUB_REPO = "streamflix"
+    // ─── Update source configuration ─────────────────────────────────────────
+    // The in-app updater checks for new APK releases from the repo below.
+    //
+    // It is DISABLED by default so this fork does NOT push users toward the
+    // upstream project's releases. To ship your OWN updates to your users, see
+    // docs/SELF_HOSTED_UPDATES.md — in short:
+    //   1) set UPDATES_ENABLED = true
+    //   2) point UPDATE_OWNER / UPDATE_REPO at your own GitHub repo
+    //      (or a GitHub-API-compatible endpoint; the base URL lives in GitHub.kt)
+    const val UPDATES_ENABLED = false
+    private const val UPDATE_OWNER = "streamflix-reborn"
+    private const val UPDATE_REPO = "streamflix"
+    // ─────────────────────────────────────────────────────────────────────────
 
     private data class Version(val name: String) : Comparable<Version> {
         override operator fun compareTo(other: Version): Int {
@@ -32,7 +43,8 @@ object InAppUpdater {
     }
 
     suspend fun getReleaseUpdate(): GitHub.Release? {
-        val latestRelease = GitHub.Releases.getLatestRelease(GITHUB_OWNER, GITHUB_REPO)
+        if (!UPDATES_ENABLED) return null
+        val latestRelease = GitHub.Releases.getLatestRelease(UPDATE_OWNER, UPDATE_REPO)
         val currentVersion = BuildConfig.VERSION_NAME
 
         if (Version(latestRelease.tagName.substringAfter("v")) > Version(currentVersion)) {
@@ -42,7 +54,8 @@ object InAppUpdater {
     }
 
     suspend fun getNewReleases(): List<GitHub.Release> {
-        val releases = GitHub.Releases.getReleases(GITHUB_OWNER, GITHUB_REPO)
+        if (!UPDATES_ENABLED) return emptyList()
+        val releases = GitHub.Releases.getReleases(UPDATE_OWNER, UPDATE_REPO)
         val currentVersion = BuildConfig.VERSION_NAME
 
         val newReleases = releases
