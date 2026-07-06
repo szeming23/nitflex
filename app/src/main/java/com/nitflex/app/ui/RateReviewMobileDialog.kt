@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.SeekBar
-import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.nitflex.app.R
 import com.nitflex.app.adapters.AppAdapter
@@ -13,7 +12,7 @@ import com.nitflex.app.database.AppDatabase
 import com.nitflex.app.databinding.DialogRateReviewMobileBinding
 import com.nitflex.app.models.Movie
 import com.nitflex.app.models.TvShow
-import com.nitflex.app.utils.toActivity
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -88,11 +87,14 @@ class RateReviewMobileDialog(
     }
 
     private fun saveReview(rating: Int?, review: String?) {
-        val activity = context.toActivity() ?: return
-        activity.lifecycleScope.launch(Dispatchers.IO) {
+        val db = database
+        val show = show
+        // Fire-and-forget on a background scope so the write is never skipped just
+        // because the Activity couldn't be resolved from the dialog's context.
+        CoroutineScope(Dispatchers.IO).launch {
             when (show) {
-                is Movie -> database.movieDao().upsertReview(show, rating, review)
-                is TvShow -> database.tvShowDao().upsertReview(show, rating, review)
+                is Movie -> db.movieDao().upsertReview(show, rating, review)
+                is TvShow -> db.tvShowDao().upsertReview(show, rating, review)
             }
             UserDataNotifier.notifyChanged()
         }

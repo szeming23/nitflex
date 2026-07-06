@@ -116,6 +116,8 @@ class BackupRestoreManager(
                         put("isWatched", movie.isWatched)
                         put("watchedDate", movie.watchedDate?.timeInMillis ?: JSONObject.NULL)
                         put("watchHistory", movie.watchHistory?.toJson() ?: JSONObject.NULL)
+                        put("userRating", movie.userRating ?: JSONObject.NULL)
+                        put("userReview", movie.userReview ?: JSONObject.NULL)
                     }
                     moviesArray.put(obj)
                     Log.d(TAG, "EXPORT: [${p.name}] Movie: ${movie.title} (Fav: ${movie.isFavorite})")
@@ -133,6 +135,8 @@ class BackupRestoreManager(
                         put("isFavorite", show.isFavorite)
                         put("favoritedAtMillis", show.favoritedAtMillis ?: JSONObject.NULL)
                         put("isWatching", show.isWatching)
+                        put("userRating", show.userRating ?: JSONObject.NULL)
+                        put("userReview", show.userReview ?: JSONObject.NULL)
                     }
                     tvShowsArray.put(obj)
                     Log.d(TAG, "EXPORT: [${p.name}] TV Show: ${show.title} (Fav: ${show.isFavorite})")
@@ -242,6 +246,8 @@ class BackupRestoreManager(
                             this.isFavorite = isFavorite
                             this.favoritedAtMillis = favoritedAtMillis
                             this.isWatching = isWatching
+                            this.userRating = s.optLongOrNull("userRating")?.toInt()
+                            this.userReview = s.optStringOrNull("userReview")
                         }
                         providerCtx.tvShowDao.save(tvShow)
                         Log.d(TAG, "IMPORT: [${providerName}] TV Show: ${tvShow.title}. Favorites: $isFavorite, Watching: $isWatching")
@@ -269,6 +275,8 @@ class BackupRestoreManager(
                             this.isWatched = isWatched
                             this.watchedDate = watchedDate
                             this.watchHistory = watchHistory
+                            this.userRating = m.optLongOrNull("userRating")?.toInt()
+                            this.userReview = m.optStringOrNull("userReview")
                         }
                         providerCtx.movieDao.save(movie)
                         Log.d(TAG, "IMPORT: [${providerName}] Movie: ${movie.title}. Favorites: $isFavorite, Watched: $isWatched, History: ${watchHistory != null}")
