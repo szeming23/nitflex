@@ -14,18 +14,20 @@ import kotlin.math.max
 
 object InAppUpdater {
 
-    // ─── Update source configuration ─────────────────────────────────────────
-    // The in-app updater checks for new APK releases from the repo below.
+    // ─── Update source configuration (Option A: your own GitHub repo) ────────
+    // The in-app updater checks for new APK releases from the repo below. It is
+    // already pointed at your repo, but kept DISABLED for now.
     //
-    // It is DISABLED by default so this fork does NOT push users toward the
-    // upstream project's releases. To ship your OWN updates to your users, see
-    // docs/SELF_HOSTED_UPDATES.md — in short:
-    //   1) set UPDATES_ENABLED = true
-    //   2) point UPDATE_OWNER / UPDATE_REPO at your own GitHub repo
-    //      (or a GitHub-API-compatible endpoint; the base URL lives in GitHub.kt)
+    // Remaining steps to go live (see docs/SELF_HOSTED_UPDATES.md):
+    //   1) make the releases repo PUBLIC (users' apps hit the GitHub API
+    //      unauthenticated — a private repo returns 404). A dedicated public
+    //      "nitflex-releases" repo works too; just change UPDATE_REPO below.
+    //   2) add the CI secrets (signing keystore + TMDB_API_KEY) to the repo.
+    //   3) tag a release (e.g. v1.7.226) so the workflow publishes the APKs.
+    //   4) flip UPDATES_ENABLED to true and ship that build to your users.
     const val UPDATES_ENABLED = false
-    private const val UPDATE_OWNER = "streamflix-reborn"
-    private const val UPDATE_REPO = "streamflix"
+    private const val UPDATE_OWNER = "szeming23"
+    private const val UPDATE_REPO = "nitflex"
     // ─────────────────────────────────────────────────────────────────────────
 
     private data class Version(val name: String) : Comparable<Version> {

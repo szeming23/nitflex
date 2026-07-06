@@ -47,18 +47,42 @@ place so you can enable it whenever your own release feed is ready.
 The simplest, most reliable path. GitHub's Releases API already returns exactly
 the JSON the app expects.
 
-1. Create a repo you control, e.g. `github.com/<you>/nitflex-releases` (public,
-   or private if your users' devices can authenticate — public is simplest).
-2. In **`app/src/main/java/com/nitflex/app/utils/InAppUpdater.kt`**, set:
-   ```kotlin
-   const val UPDATES_ENABLED = true
-   private const val UPDATE_OWNER = "<you>"
-   private const val UPDATE_REPO  = "nitflex-releases"
-   ```
-   Leave `GitHub.kt`'s base URL as `https://api.github.com/`.
-3. Publish a release (see **Publishing a release** below).
+**Already wired up for you.** `InAppUpdater.kt` is pointed at your repo:
+```kotlin
+const val UPDATES_ENABLED = false      // ← flip to true as the last step
+private const val UPDATE_OWNER = "szeming23"
+private const val UPDATE_REPO  = "nitflex"
+```
+The GitHub Actions workflow (`.github/workflows/release.yml`) is also ready: on
+a `v*` tag it builds, signs, and publishes APKs named `…-only-mobile.apk` /
+`…-only-tv.apk`, which is exactly what the updater looks for.
 
-That's it — no server to run.
+### Remaining steps (you do these when ready)
+
+1. **Make the releases repo public.** Users' apps call the GitHub API
+   *unauthenticated*, so a **private** repo returns 404 and no update is ever
+   found. Either make `szeming23/nitflex` public, or (to keep your code
+   private) create a dedicated public repo e.g. `szeming23/nitflex-releases`
+   and change `UPDATE_REPO` to `"nitflex-releases"`.
+2. **Add the CI secrets** (Settings → Secrets and variables → Actions):
+
+   | Secret | What it is |
+   |---|---|
+   | `KEYSTORE` | Your release keystore, base64-encoded (`base64 -w0 release.keystore`) |
+   | `SIGNING_KEY_ALIAS` | The key alias inside that keystore |
+   | `SIGNING_STORE_PASSWORD` | Keystore password |
+   | `SIGNING_KEY_PASSWORD` | Key password |
+   | `TMDB_API_KEY` | Default TMDb key baked into the build (see note below) |
+
+   Use the **same keystore forever** (see the signing section).
+3. **Tag a release:** bump `versionCode`/`versionName`, then
+   `git tag v1.7.226 && git push --tags`. The workflow publishes the APKs.
+4. **Flip `UPDATES_ENABLED = true`** and ship that build. From then on, tagging
+   a new higher version is all it takes to push an update to your users.
+
+> Note on `TMDB_API_KEY`: it's the *default* key compiled into the app so it
+> works out of the box; it lives only as a CI secret, never in the code, and
+> any user can override it with their own key in Settings.
 
 ---
 
