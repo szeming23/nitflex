@@ -55,10 +55,11 @@ class MainViewModel : ViewModel() {
 
             _state.emit(State.SuccessCheckingUpdate(newReleases, asset))
         } catch (e: HttpException) {
-            if (e.code() == 404) {
-                // The release repo is private, renamed, or has no releases yet — nothing
-                // the user can act on, so fail quietly instead of a Toast on every launch.
-                Log.w("MainViewModel", "checkUpdate: release feed not found (404), skipping")
+            if (e.code() == 404 || e.code() == 403) {
+                // 404: release repo is private, renamed, or has no releases yet.
+                // 403: unauthenticated GitHub API rate limit (60/hr per IP) hit.
+                // Neither is actionable by the user, so fail quietly instead of a Toast on every launch.
+                Log.w("MainViewModel", "checkUpdate: release feed unavailable (${e.code()}), skipping")
                 return@launch
             }
             Log.e("MainViewModel", "checkUpdate: ", e)
