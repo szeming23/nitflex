@@ -8,5 +8,12 @@
         app:title="@string/settings_about_version"
         tools:summary="@string/settings_about_version_name" />
 
+    <Preference
+        app:icon="@drawable/ic_refresh"
+        app:iconSpaceReserved="false"
+        app:key="p_settings_check_upstream_updates"
+        app:title="@string/settings_check_upstream_updates"
+        app:summary="@string/settings_check_upstream_updates_summary" />
+
 
 </androidx.preference.PreferenceScreen>

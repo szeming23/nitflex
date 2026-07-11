@@ -270,6 +270,14 @@
     <string name="settings_version_tv">Version TV</string>
     <string name="settings_version_mobile">Version Mobile</string>
     <string name="settings_about_version_name">Version %s</string>
+    <string name="settings_check_upstream_updates">Check for updates from source</string>
+    <string name="settings_check_upstream_updates_summary">Check if the upstream Streamflix project has a newer release</string>
+    <string name="settings_check_upstream_updates_summary_checked">Last checked: %s</string>
+    <string name="settings_check_upstream_updates_checking">Checking…</string>
+    <string name="settings_check_upstream_updates_result_title">Streamflix upstream</string>
+    <string name="settings_check_upstream_updates_available">Latest upstream release: %1$s (published %2$s)\n\n%3$s</string>
+    <string name="settings_check_upstream_updates_view_release">View release</string>
+    <string name="settings_check_upstream_updates_error">Couldn\'t check for upstream updates: %s</string>
     <string name="settings_help">Help</string>
     <string name="settings_telegram">Telegram group</string>
     <string name="settings_refresh_cache_title">Refresh cache from database</string>

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import com.nitflex.app.utils.UserPreferences
+import retrofit2.HttpException
 import java.io.File
 
 class MainViewModel : ViewModel() {
@@ -53,6 +54,15 @@ class MainViewModel : ViewModel() {
                 ?: throw Exception("Can't find update APK")
 
             _state.emit(State.SuccessCheckingUpdate(newReleases, asset))
+        } catch (e: HttpException) {
+            if (e.code() == 404) {
+                // The release repo is private, renamed, or has no releases yet — nothing
+                // the user can act on, so fail quietly instead of a Toast on every launch.
+                Log.w("MainViewModel", "checkUpdate: release feed not found (404), skipping")
+                return@launch
+            }
+            Log.e("MainViewModel", "checkUpdate: ", e)
+            _state.emit(State.FailedUpdate(e))
         } catch (e: Exception) {
             Log.e("MainViewModel", "checkUpdate: ", e)
             _state.emit(State.FailedUpdate(e))
