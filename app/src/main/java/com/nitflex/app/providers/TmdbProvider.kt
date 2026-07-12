@@ -33,11 +33,13 @@ import com.nitflex.app.utils.UserPreferences
 import com.nitflex.app.utils.safeSubList
 import android.util.Base64
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
@@ -847,7 +849,15 @@ class TmdbProvider(override val language: String) : Provider {
             }
         }
 
-        addAnimeServers(servers, videoType)
+        // Supplementary anime servers are best-effort: they must never delay indefinitely
+        // or break the base ("original") server list built above.
+        try {
+            addAnimeServers(servers, videoType)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w("TmdbProvider", "addAnimeServers skipped: ${e.message}")
+        }
 
         // ORDINE PRIORITÀ FINALE: Portiamo i server con audio Spagnolo e Filemoon in cima
         val finalServers = if (language.startsWith("es")) {
@@ -896,68 +906,88 @@ class TmdbProvider(override val language: String) : Provider {
             return (a.contains(b) || b.contains(a)) && Math.abs(a.length - b.length) <= 5
         }
 
+        // Cap each anime provider so a slow/hanging lookup can't stall the whole server list.
+        // In particular AniWorld resolves each embed up-front via getVideo(), which relies on
+        // the s.to bypass session that doesn't exist when we're launched from TMDb, so without
+        // a timeout it can block forever and leave the player with no servers at all.
+        val perProviderTimeoutMs = 12_000L
+
         // AniWorld only serves TV shows, and its server links are redirect pages rather than
         // direct embeds, so each one needs to be resolved to a real video up front (stashed on
         // Video.Server.video) since the generic getVideo() below only knows how to hand a raw
         // link to the Extractor, not how to walk AniWorld's redirect.
-        val aniWorldDeferred = async {
-            try {
-                if (videoType !is Video.Type.Episode) return@async emptyList<Video.Server>()
+        suspend fun fetchAniWorldServers(): List<Video.Server> {
+            if (videoType !is Video.Type.Episode) return emptyList()
 
-                val match = AniWorldProvider.search(targetTitle, 1)
-                    .filterIsInstance<TvShow>()
-                    .firstOrNull { titleMatches(it.title) }
-                    ?: return@async emptyList<Video.Server>()
+            val match = AniWorldProvider.search(targetTitle, 1)
+                .filterIsInstance<TvShow>()
+                .firstOrNull { titleMatches(it.title) }
+                ?: return emptyList()
 
-                val show = AniWorldProvider.getTvShow(match.id)
-                val season = show.seasons.firstOrNull { it.number == videoType.season.number }
-                    ?: return@async emptyList<Video.Server>()
-                val episode = AniWorldProvider.getEpisodesBySeason(season.id)
-                    .firstOrNull { it.number == videoType.number }
-                    ?: return@async emptyList<Video.Server>()
+            val show = AniWorldProvider.getTvShow(match.id)
+            val season = show.seasons.firstOrNull { it.number == videoType.season.number }
+                ?: return emptyList()
+            val episode = AniWorldProvider.getEpisodesBySeason(season.id)
+                .firstOrNull { it.number == videoType.number }
+                ?: return emptyList()
 
-                AniWorldProvider.getServers(episode.id, videoType).mapNotNull { raw ->
-                    try {
-                        Video.Server(
-                            id = "aniworld_${raw.id}",
-                            name = "[AniWorld] ${raw.name}",
-                        ).apply { video = AniWorldProvider.getVideo(raw) }
-                    } catch (e: Exception) {
-                        null
-                    }
+            return AniWorldProvider.getServers(episode.id, videoType).mapNotNull { raw ->
+                try {
+                    Video.Server(
+                        id = "aniworld_${raw.id}",
+                        name = "[AniWorld] ${raw.name}",
+                    ).apply { video = AniWorldProvider.getVideo(raw) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    null
                 }
-            } catch (e: Exception) {
-                Log.w("TmdbProvider", "addAnimeServers: AniWorld failed: ${e.message}")
-                emptyList()
             }
         }
 
         // AnimeAV1's server id is already the real embed link (its own getVideo() just hands
         // server.id to the Extractor), so it can be passed through unchanged and resolved
         // generically below via the server.src.ifEmpty { server.id } fallback.
+        suspend fun fetchAnimeAv1Servers(): List<Video.Server> {
+            val results = AnimeAv1Provider.search(targetTitle, 1)
+            val sourceId = when (videoType) {
+                is Video.Type.Movie -> {
+                    val match = results.filterIsInstance<Movie>().firstOrNull { titleMatches(it.title) }
+                        ?: return emptyList()
+                    AnimeAv1Provider.getMovie(match.id).id
+                }
+                is Video.Type.Episode -> {
+                    val match = results.filterIsInstance<TvShow>().firstOrNull { titleMatches(it.title) }
+                        ?: return emptyList()
+                    AnimeAv1Provider.getTvShow(match.id).seasons
+                        .flatMap { it.episodes }
+                        .firstOrNull { it.number == videoType.number }
+                        ?.id
+                        ?: return emptyList()
+                }
+            }
+
+            return AnimeAv1Provider.getServers(sourceId, videoType).map {
+                Video.Server(id = it.id, name = "[AnimeAV1] ${it.name}", src = it.src)
+            }
+        }
+
+        val aniWorldDeferred = async {
+            try {
+                withTimeoutOrNull(perProviderTimeoutMs) { fetchAniWorldServers() } ?: emptyList()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("TmdbProvider", "addAnimeServers: AniWorld failed: ${e.message}")
+                emptyList()
+            }
+        }
+
         val animeAv1Deferred = async {
             try {
-                val results = AnimeAv1Provider.search(targetTitle, 1)
-                val sourceId = when (videoType) {
-                    is Video.Type.Movie -> {
-                        val match = results.filterIsInstance<Movie>().firstOrNull { titleMatches(it.title) }
-                            ?: return@async emptyList<Video.Server>()
-                        AnimeAv1Provider.getMovie(match.id).id
-                    }
-                    is Video.Type.Episode -> {
-                        val match = results.filterIsInstance<TvShow>().firstOrNull { titleMatches(it.title) }
-                            ?: return@async emptyList<Video.Server>()
-                        AnimeAv1Provider.getTvShow(match.id).seasons
-                            .flatMap { it.episodes }
-                            .firstOrNull { it.number == videoType.number }
-                            ?.id
-                            ?: return@async emptyList<Video.Server>()
-                    }
-                }
-
-                AnimeAv1Provider.getServers(sourceId, videoType).map {
-                    Video.Server(id = it.id, name = "[AnimeAV1] ${it.name}", src = it.src)
-                }
+                withTimeoutOrNull(perProviderTimeoutMs) { fetchAnimeAv1Servers() } ?: emptyList()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.w("TmdbProvider", "addAnimeServers: AnimeAV1 failed: ${e.message}")
                 emptyList()
