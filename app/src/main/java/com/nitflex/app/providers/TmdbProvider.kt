@@ -931,17 +931,16 @@ class TmdbProvider(override val language: String) : Provider {
                 .firstOrNull { it.number == videoType.number }
                 ?: return emptyList()
 
-            return AniWorldProvider.getServers(episode.id, videoType).mapNotNull { raw ->
-                try {
-                    Video.Server(
-                        id = "aniworld_${raw.id}",
-                        name = "[AniWorld] ${raw.name}",
-                    ).apply { video = AniWorldProvider.getVideo(raw) }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    null
-                }
+            // Resolve lazily at play time (see getVideo) instead of pre-resolving every
+            // server here — pre-resolving ran AniWorld's redirect+extract for all servers
+            // up front, which is what blocked the whole list. raw.src is AniWorld's redirect
+            // URL; raw.name (hoster + language suffix) is recovered from the display name.
+            return AniWorldProvider.getServers(episode.id, videoType).map { raw ->
+                Video.Server(
+                    id = "aniworld:${raw.id}",
+                    name = "[AniWorld] ${raw.name}",
+                    src = raw.src,
+                )
             }
         }
 
@@ -999,12 +998,20 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val url = server.src.ifEmpty { server.id }
-        Log.i("NitflexES", "[SERVER] -> Using: ${server.name} (URL: $url)")
-        
+        Log.i("NitflexES", "[SERVER] -> Using: ${server.name}")
+
         val video = when {
+            // AniWorld servers (surfaced via addAnimeServers) resolve through AniWorld's own
+            // client, which walks its redirect and knows its hosters — the same path used when
+            // AniWorld is played directly. Done here at play time, not during getServers.
+            server.id.startsWith("aniworld:") -> {
+                val rawName = server.name.removePrefix("[AniWorld] ")
+                AniWorldProvider.getVideo(
+                    Video.Server(id = rawName, name = rawName, src = server.src)
+                )
+            }
             server.video != null -> server.video!!
-            else -> Extractor.extract(url, server)
+            else -> Extractor.extract(server.src.ifEmpty { server.id }, server)
         }
 
         // LOGICA SOTTOTITOLI FORZATI: Se siamo in spagnolo, attiviamo solo i forced di default
