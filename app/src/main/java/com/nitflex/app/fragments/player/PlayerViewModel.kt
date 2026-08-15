@@ -11,6 +11,7 @@ import com.nitflex.app.models.Video
 import com.nitflex.app.utils.CustomTabHelper
 import com.nitflex.app.utils.EpisodeManager
 import com.nitflex.app.utils.OpenSubtitles
+import com.nitflex.app.utils.TmdbUtils
 import com.nitflex.app.utils.UserPreferences
 import com.nitflex.app.utils.format
 import kotlinx.coroutines.Dispatchers
@@ -230,22 +231,37 @@ class PlayerViewModel(
         Log.d("PlayerViewModel", "Inizio ricerca sottotitoli")
         _subtitleState.emit(SubtitleState.Loading)
 
+        val season = (videoType as? Video.Type.Episode)?.season?.number
+        val episode = (videoType as? Video.Type.Episode)?.number
+        // The show's IMDb id (from TMDb enrichment) — the most reliable, language-independent
+        // way to match subtitles for providers whose titles are localized (e.g. AniWorld's
+        // German names). OpenSubtitles' legacy API wants the numeric id, so strip "tt".
+        val imdbId = subtitleImdbId(videoType)?.removePrefix("tt")
+        // Query variants: the raw title, a normalized one (brackets / audio tags stripped),
+        // and the canonical English title resolved via TMDb — so localized/anime titles still
+        // match providers that index English/romaji names. Resolved once, shared by both
+        // searches below (the TMDb lookup would otherwise run twice).
+        val queries = subtitleSearchTitles(videoType)
+
         launch {
             try {
                 Log.d("PlayerViewModel", "Inizio ricerca OpenSubtitles")
-                val season = (videoType as? Video.Type.Episode)?.season?.number
-                val episode = (videoType as? Video.Type.Episode)?.number
-                // Query variants: the raw title plus a normalized one (brackets / audio tags
-                // stripped) so anime titles from providers like AnimeAV1 still match.
-                val queries = subtitleSearchTitles(videoType)
 
                 // Run a general (all-language) search for the picker AND an explicit
-                // English-only search for each title variant, then merge + de-duplicate.
-                // Scoping to English surfaces English tracks that a mixed-language result
-                // set can crowd out or omit entirely.
+                // English-only search, then merge + de-duplicate. Scoping to English surfaces
+                // English tracks that a mixed-language result set can crowd out or omit.
+                // Prefer the IMDb id (language-independent) and also try each title variant.
                 val results = mutableListOf<OpenSubtitles.Subtitle>()
+                // Resilient per call: one failing request must not wipe out the others.
+                if (!imdbId.isNullOrBlank()) {
+                    results += runCatching {
+                        OpenSubtitles.search(imdbId = imdbId, season = season, episode = episode)
+                    }.getOrDefault(emptyList())
+                    results += runCatching {
+                        OpenSubtitles.search(imdbId = imdbId, season = season, episode = episode, subLanguageId = "eng")
+                    }.getOrDefault(emptyList())
+                }
                 for (q in queries) {
-                    // Resilient per call: one failing request must not wipe out the others.
                     results += runCatching {
                         OpenSubtitles.search(query = q, season = season, episode = episode)
                     }.getOrDefault(emptyList())
@@ -276,13 +292,12 @@ class PlayerViewModel(
         launch {
             try {
                 Log.d("PlayerViewModel", "Inizio ricerca SubDL")
-                val season = (videoType as? Video.Type.Episode)?.season?.number
-                val episode = (videoType as? Video.Type.Episode)?.number
                 val type = if (videoType is Video.Type.Episode) "tv" else "movie"
 
-                // Search each title variant, explicitly asking SubDL for English subtitles
-                // (previously no language was requested, so English was often missing).
-                val subtitles = subtitleSearchTitles(videoType)
+                // Search each title variant (SubDL has no IMDb-id param), explicitly asking
+                // for English subtitles (previously no language was requested, so English was
+                // often missing).
+                val subtitles = queries
                     .flatMap { q ->
                         SubDL.search(
                             filmName = q,
@@ -304,12 +319,23 @@ class PlayerViewModel(
     }
 
     /**
-     * Title variants to query subtitle providers with. Returns the raw title and, when it
-     * differs, a normalized form with bracketed/parenthetical segments and common Spanish
-     * audio tags removed — so anime titles (e.g. from AnimeAV1) match OpenSubtitles/SubDL,
-     * which index English/romaji names rather than localized ones.
+     * The show's IMDb id, when the provider (via TMDb enrichment) carries one. Used as the
+     * primary, language-independent OpenSubtitles query — the reliable fix for providers
+     * whose titles are localized (e.g. AniWorld's German names).
      */
-    private fun subtitleSearchTitles(videoType: Video.Type): List<String> {
+    private fun subtitleImdbId(videoType: Video.Type): String? = when (videoType) {
+        is Video.Type.Episode -> videoType.tvShow.imdbId
+        is Video.Type.Movie -> videoType.imdbId
+    }?.takeIf { it.isNotBlank() }
+
+    /**
+     * Title variants to query subtitle providers with. Returns the raw title, a normalized
+     * form with bracketed/parenthetical segments and common Spanish audio tags removed, and
+     * the canonical English title resolved via TMDb — so localized/anime titles (e.g. from
+     * AniWorld or AnimeAV1) match OpenSubtitles/SubDL, which index English/romaji names
+     * rather than localized ones. The TMDb lookup is skipped when TMDb is disabled.
+     */
+    private suspend fun subtitleSearchTitles(videoType: Video.Type): List<String> {
         val raw = when (videoType) {
             is Video.Type.Episode -> videoType.tvShow.title
             is Video.Type.Movie -> videoType.title
@@ -321,9 +347,21 @@ class PlayerViewModel(
             .replace(Regex("\\s+"), " ")
             .trim()
 
+        // Ask TMDb for the canonical English title from the (possibly localized) raw title.
+        // Self-gated on the enableTmdb preference; failures fall back to title-only search.
+        val englishTitle = runCatching {
+            when (videoType) {
+                is Video.Type.Episode -> TmdbUtils.getTvShow(raw, language = "en")?.title
+                is Video.Type.Movie -> TmdbUtils.getMovie(raw, language = "en")?.title
+            }
+        }.getOrNull()?.trim()
+
         return listOfNotNull(
             raw.takeIf { it.isNotBlank() },
             normalized.takeIf { it.isNotBlank() && !it.equals(raw, ignoreCase = true) },
+            englishTitle?.takeIf {
+                it.isNotBlank() && !it.equals(raw, ignoreCase = true) && !it.equals(normalized, ignoreCase = true)
+            },
         ).ifEmpty { listOf(raw) }
     }
 
